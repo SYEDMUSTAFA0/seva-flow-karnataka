@@ -1,0 +1,321 @@
+// Seva Flow Karnataka — database schema
+// Provider is PostgreSQL. Locally it runs embedded via PGlite
+// (pglite-prisma-adapter); in production it connects to a managed
+// PostgreSQL server through DATABASE_URL.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Identity & access ───────────────────────────────────────────────────────
+
+model Role {
+  id          String   @id // FIELD_OFFICER | REVENUE_INSPECTOR | APPROVING_OFFICER | ADMIN
+  nameKn      String
+  nameEn      String
+  description String?
+  users       User[]
+  createdAt   DateTime @default(now())
+}
+
+model User {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  phone        String?
+  passwordHash String
+  name         String
+  nameKn       String?
+  roleId       String
+  role         Role      @relation(fields: [roleId], references: [id])
+  taluk        String?
+  district     String?
+  active       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  sessions              Session[]
+  assignedApplications  Application[]      @relation("AssignedOfficer")
+  documentVerifications DocumentVerification[]
+  fieldVerifications    FieldVerification[]
+  recommendations       OfficerRecommendation[]
+  decisions             ApplicationDecision[]
+  aiInteractions        AIInteraction[]
+  auditLogs             AuditLog[]
+  notifications         Notification[]
+  timelineEntries       ApplicationTimeline[]
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  tokenHash String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+// ─── Applicants & applications ───────────────────────────────────────────────
+
+model Applicant {
+  id             String  @id @default(uuid())
+  fullName       String
+  fullNameKn     String?
+  fatherName     String?
+  phone          String
+  alternatePhone String?
+  addressLine1   String
+  addressLine2   String?
+  village        String
+  villageKn      String?
+  hobli          String?
+  taluk          String
+  talukKn        String?
+  district       String
+  districtKn     String?
+  pincode        String
+  aadhaarLast4   String? // last-4 only — demo data, no real Aadhaar numbers stored
+  createdAt      DateTime @default(now())
+
+  applications Application[]
+}
+
+model Application {
+  id                 String   @id @default(uuid())
+  referenceNumber    String   @unique // e.g. SF/INC/2026/000123
+  applicationType    String   @default("INCOME_CERTIFICATE")
+  applicantId        String
+  applicant          Applicant @relation(fields: [applicantId], references: [id])
+  assignedOfficerId  String?
+  assignedOfficer    User?     @relation("AssignedOfficer", fields: [assignedOfficerId], references: [id])
+
+  // Declared by the applicant — NOT verified income
+  declaredAnnualIncome Int
+  incomeSource         String // SALARIED | SELF_EMPLOYED | AGRICULTURE | DAILY_WAGE | PENSION | OTHER
+  purpose              String // SCHOLARSHIP | FEE_CONCESSION | GOVT_SCHEME | EWS_RESERVATION | OTHER
+  purposeDetails       String?
+
+  // RECEIVED | DOCUMENT_SCRUTINY | FIELD_VERIFICATION | OFFICER_RECOMMENDATION
+  // | PENDING_DECISION | APPROVED | REJECTED | RETURNED
+  currentStage String
+  status       String // mirrors currentStage terminal/pending state
+  priority     String @default("NORMAL") // LOW | NORMAL | HIGH | URGENT
+  priorityScore Int   @default(0)
+
+  submittedAt        DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  internalTargetDate DateTime? // illustrative internal target — NOT a statutory deadline
+  resubmissionCount  Int       @default(0)
+
+  documents       ApplicationDocument[]
+  fieldVerification   FieldVerification?
+  recommendations     OfficerRecommendation[]
+  decision            ApplicationDecision?
+  timeline            ApplicationTimeline[]
+  aiInteractions      AIInteraction[]
+  auditLogs           AuditLog[]
+  notifications       Notification[]
+
+  @@index([currentStage])
+  @@index([assignedOfficerId])
+  @@index([submittedAt])
+}
+
+// ─── Documents ───────────────────────────────────────────────────────────────
+
+// Configurable checklist: which document types are required for this service.
+model DocumentRequirement {
+  id            String  @id @default(uuid())
+  documentType  String  // AADHAAR | RATION_CARD | ADDRESS_PROOF | INCOME_PROOF | SELF_DECLARATION | ID_PROOF | PHOTOGRAPH
+  labelEn       String
+  labelKn       String
+  required      Boolean @default(true)
+  alternativeOf String? // group key — e.g. income proof OR self-declaration satisfies "income_evidence"
+  sortOrder     Int     @default(0)
+  active        Boolean @default(true)
+}
+
+model ApplicationDocument {
+  id               String   @id @default(uuid())
+  applicationId    String
+  application      Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  documentType     String
+  storageKey       String   // path/key in the storage backend
+  originalFilename String
+  mimeType         String
+  sizeBytes        Int
+  uploadedById     String?
+  uploadedAt       DateTime @default(now())
+
+  // PENDING | VERIFIED | INVALID | MISSING | NEEDS_CLARIFICATION
+  verificationStatus String @default("PENDING")
+
+  // AI-extracted fields — never treated as verified truth
+  extractedData   String? // JSON
+  extractionDoneAt DateTime?
+
+  verifications DocumentVerification[]
+
+  @@index([applicationId])
+}
+
+model DocumentVerification {
+  id            String   @id @default(uuid())
+  documentId    String
+  document      ApplicationDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  officerId     String
+  officer       User     @relation(fields: [officerId], references: [id])
+  status        String   // VERIFIED | INVALID | NEEDS_CLARIFICATION
+  remarks       String?
+  remarksKn     String?
+  createdAt     DateTime @default(now())
+}
+
+// ─── Field verification ──────────────────────────────────────────────────────
+
+model FieldVerification {
+  id                 String   @id @default(uuid())
+  applicationId      String   @unique
+  application        Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  officerId          String
+  officer            User     @relation(fields: [officerId], references: [id])
+  scheduledAt        DateTime?
+  visitedAt          DateTime?
+  locationLat        Float?
+  locationLng        Float?
+  checklistJson      String?  // JSON array of checklist items + answers
+  rawNotes           String?  // officer-entered field notes
+  observations       String?  // structured report (may be AI-assisted, officer-edited)
+  observationsKn     String?
+  aiAssisted         Boolean  @default(false)
+  applicantPresent   Boolean?
+  residenceConfirmed Boolean?
+  incomeConsistent   Boolean?
+  neighbourConfirmed Boolean?
+  documentsShown     String?
+  supportingImages   String?  // JSON array of storage keys
+  // VERIFIED | FURTHER_VERIFICATION | UNABLE_TO_VERIFY | RETURN_FOR_CLARIFICATION
+  outcome            String?
+  submittedAt        DateTime?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+// ─── Recommendation & decision ───────────────────────────────────────────────
+
+model OfficerRecommendation {
+  id             String   @id @default(uuid())
+  applicationId  String
+  application    Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  officerId      String
+  officer        User     @relation(fields: [officerId], references: [id])
+  // RECOMMEND_APPROVAL | RECOMMEND_REJECTION | RETURN_FOR_VERIFICATION
+  recommendation String
+  remarks        String?
+  remarksKn      String?
+  aiAssisted     Boolean  @default(false)
+  aiSummary      String?  // the AI case summary shown to the officer
+  createdAt      DateTime @default(now())
+}
+
+model ApplicationDecision {
+  id                String   @id @default(uuid())
+  applicationId     String   @unique
+  application       Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  officerId         String
+  officer           User     @relation(fields: [officerId], references: [id])
+  decision          String   // APPROVED | REJECTED | RETURNED
+  reason            String?
+  reasonKn          String?
+  remarks           String?
+  approvedIncome    Int?     // approved income — only set when supported by verified evidence
+  certificateNumber String?  @unique
+  decidedAt         DateTime @default(now())
+}
+
+// ─── History, AI, notifications ──────────────────────────────────────────────
+
+// Citizen-visible status history.
+model ApplicationTimeline {
+  id             String   @id @default(uuid())
+  applicationId  String
+  application    Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  actorId        String?
+  actor          User?    @relation(fields: [actorId], references: [id])
+  action         String   // APPLICATION_CREATED | STAGE_CHANGED | DOCUMENT_REQUESTED | …
+  previousStatus String?
+  newStatus      String?
+  remarks        String?
+  remarksKn      String?
+  createdAt      DateTime @default(now())
+
+  @@index([applicationId, createdAt])
+}
+
+// Full audit trail — immutable, every meaningful action.
+model AuditLog {
+  id             String   @id @default(uuid())
+  applicationId  String?
+  application    Application? @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  actorId        String?
+  actor          User?    @relation(fields: [actorId], references: [id])
+  action         String
+  entityType     String?
+  entityId       String?
+  previousStatus String?
+  newStatus      String?
+  metadata       String? // JSON
+  remarks        String?
+  createdAt      DateTime @default(now())
+
+  @@index([applicationId, createdAt])
+  @@index([actorId])
+}
+
+model AIInteraction {
+  id            String   @id @default(uuid())
+  applicationId String?
+  application   Application? @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  officerId     String?
+  officer       User?    @relation(fields: [officerId], references: [id])
+  taskType      String   // DOCUMENT_EXTRACTION | DOCUMENT_COMPARISON | MISSING_INFO | FIELD_REPORT | CASE_SUMMARY | DECISION_SUPPORT
+  inputRef      String?  // JSON — which documents/records were used
+  prompt        String?  // prompt template version + redacted input digest
+  output        String   // JSON — structured response
+  confidence    Float?
+  model         String   // model name or "demo-deterministic"
+  provider      String   // demo | openai | gemini
+  officerOverride Boolean @default(false) // officer edited/rejected AI output
+  createdAt     DateTime @default(now())
+
+  @@index([applicationId])
+}
+
+// Uploaded file bytes when STORAGE_BACKEND=db (serverless hosts without a
+// persistent filesystem). Local/embedded mode uses the filesystem instead.
+model StoredObject {
+  key       String   @id
+  data      Bytes
+  createdAt DateTime @default(now())
+}
+
+model Notification {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  applicationId String?
+  application   Application? @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  titleEn       String
+  titleKn       String
+  bodyEn        String?
+  bodyKn        String?
+  read          Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  @@index([userId, read])
+}

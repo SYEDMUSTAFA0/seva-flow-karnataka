@@ -1,0 +1,42 @@
+# Production-style PostgreSQL for Seva Flow Karnataka.
+# Local development does NOT need this — the default DB_MODE=embedded runs
+# real PostgreSQL in-process via PGlite with zero services.
+#
+# Usage:
+#   docker compose up -d postgres
+#   cp .env.example .env  →  set DB_MODE=server and DATABASE_URL below
+#   npx prisma migrate deploy && npm run db:seed && npm run dev
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: sevaflow
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d sevaflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Optional: run the app itself in a container (after `npm run build` context).
+  # app:
+  #   build: .
+  #   ports: ["3000:3000"]
+  #   environment:
+  #     DB_MODE: server
+  #     DATABASE_URL: postgresql://postgres:postgres@postgres:5432/sevaflow
+  #     SESSION_SECRET: change-me
+  #     AI_PROVIDER: demo
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+
+volumes:
+  pgdata:

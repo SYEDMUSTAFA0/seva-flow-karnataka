@@ -1,0 +1,167 @@
+@import "@fontsource-variable/noto-sans";
+@import "@fontsource/noto-sans-kannada/400.css";
+@import "@fontsource/noto-sans-kannada/500.css";
+@import "@fontsource/noto-sans-kannada/600.css";
+@import "@fontsource/noto-sans-kannada/700.css";
+@import "tailwindcss";
+
+@theme {
+  /* Canvas & surfaces */
+  --color-canvas: #f7f6f2;
+  --color-canvas-2: #f0eee8;
+  --color-surface: #ffffff;
+  --color-surface-2: #fafaf7;
+
+  /* Deep navy ink */
+  --color-ink: #17233b;
+  --color-ink-2: #3d4a68;
+  --color-ink-3: #66738f;
+
+  /* Lines */
+  --color-line: #e6e4dc;
+  --color-line-2: #d8d5ca;
+
+  /* Saffron — Karnataka accent */
+  --color-saffron-50: #fdf4ec;
+  --color-saffron-100: #fae5d0;
+  --color-saffron-200: #f4c9a1;
+  --color-saffron-300: #eda668;
+  --color-saffron-400: #e58543;
+  --color-saffron-500: #d96f2b;
+  --color-saffron-600: #bf5820;
+  --color-saffron-700: #9c451d;
+
+  /* Forest green */
+  --color-forest-50: #eff8f1;
+  --color-forest-100: #d9efe0;
+  --color-forest-200: #b5dfc5;
+  --color-forest-300: #84c7a1;
+  --color-forest-400: #51a97b;
+  --color-forest-500: #318d60;
+  --color-forest-600: #21714b;
+  --color-forest-700: #1c5a3d;
+
+  /* Navy scale for depth */
+  --color-navy-50: #f2f5fa;
+  --color-navy-100: #e4eaf3;
+  --color-navy-200: #c9d4e6;
+  --color-navy-300: #9db0cf;
+  --color-navy-400: #6c87b2;
+  --color-navy-500: #48669a;
+  --color-navy-600: #355082;
+  --color-navy-700: #2b4169;
+  --color-navy-800: #223353;
+  --color-navy-900: #17233b;
+
+  /* Amber / red for status */
+  --color-amber: #b45309;
+  --color-amber-bg: #fdf3e3;
+  --color-rose: #b91c1c;
+  --color-rose-bg: #fdecec;
+
+  --font-sans: "Noto Sans Variable", "Noto Sans Kannada", system-ui, sans-serif;
+  --font-kn: "Noto Sans Kannada", "Noto Sans Variable", system-ui, sans-serif;
+
+  --shadow-soft: 0 1px 2px rgb(23 35 59 / 0.05), 0 4px 16px -4px rgb(23 35 59 / 0.07);
+  --shadow-lift: 0 2px 4px rgb(23 35 59 / 0.06), 0 12px 32px -8px rgb(23 35 59 / 0.12);
+  --radius-lg: 0.875rem;
+  --radius-xl: 1.125rem;
+}
+
+html {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Kannada copy needs slightly looser leading for readability */
+.lang-kn,
+.lang-kn input,
+.lang-kn button,
+.lang-kn select,
+.lang-kn textarea {
+  font-family: var(--font-kn);
+  line-height: 1.75;
+}
+
+body {
+  background: var(--color-canvas);
+  color: var(--color-ink);
+}
+
+/* Subtle scrollbar */
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--color-line-2);
+  border-radius: 8px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@layer components {
+  .card {
+    @apply rounded-[var(--radius-lg)] border border-line bg-surface shadow-[var(--shadow-soft)];
+  }
+  .card-hover {
+    @apply transition-shadow duration-200 hover:shadow-[var(--shadow-lift)];
+  }
+  .input-base {
+    @apply w-full rounded-lg border border-line-2 bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-3/70 focus:border-navy-400 focus:outline-none focus:ring-2 focus:ring-navy-100 disabled:cursor-not-allowed disabled:bg-canvas-2;
+  }
+  .btn-base {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy-300 disabled:pointer-events-none disabled:opacity-50;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium;
+  }
+}
+
+/* Print styles — certificate printing */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .print-area,
+  .print-area * {
+    visibility: visible;
+  }
+  .print-area {
+    position: absolute;
+    inset: 0;
+    margin: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in-up {
+  animation: fade-in-up 0.35s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
