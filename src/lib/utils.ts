@@ -21,6 +21,12 @@ export function daysBetween(a: Date, b: Date = new Date()): number {
   return Math.floor((b.getTime() - a.getTime()) / 86_400_000);
 }
 
+export function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 export function formatDate(d: Date | string | null | undefined, lang = "en"): string {
   if (!d) return "—";
   const date = typeof d === "string" ? new Date(d) : d;

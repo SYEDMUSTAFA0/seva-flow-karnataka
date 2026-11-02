@@ -9,11 +9,9 @@ import {
   createApplication,
   verifyDocument,
 } from "@/lib/services/applications";
+import { deleteDocument, uploadDocument } from "@/lib/services/documents";
 import { prisma } from "@/lib/db";
-import { saveFile } from "@/lib/storage";
-import { logAudit, addTimeline } from "@/lib/audit";
-import { canViewApplication, hasPermission } from "@/lib/permissions";
-import { PERMISSIONS, STAGES, type Stage } from "@/lib/constants";
+import { STAGES, type Stage } from "@/lib/constants";
 
 export interface ActionResult<T = unknown> {
   ok: boolean;
@@ -99,9 +97,6 @@ export async function verifyDocumentAction(
   return res;
 }
 
-const MAX_UPLOAD = 5 * 1024 * 1024;
-const ALLOWED_MIME = new Set(["application/pdf", "image/jpeg", "image/png", "image/svg+xml", "image/webp"]);
-
 export async function uploadDocumentAction(formData: FormData): Promise<ActionResult<{ id: string }>> {
   const lang = await getLanguage();
   const t = dictFor(lang);
@@ -110,43 +105,30 @@ export async function uploadDocumentAction(formData: FormData): Promise<ActionRe
   const documentType = formData.get("documentType") as string;
   const file = formData.get("file") as File | null;
   if (!applicationId || !documentType || !file) return { ok: false, error: t.errors.generic };
-  if (file.size > MAX_UPLOAD) return { ok: false, error: t.errors.uploadTooLarge };
-  if (!ALLOWED_MIME.has(file.type)) return { ok: false, error: t.errors.uploadBadType };
-  if (!hasPermission(user, PERMISSIONS.DOC_UPLOAD)) return { ok: false, error: t.errors.forbidden };
 
   const res = await fail(async () => {
-    const app = await prisma.application.findUnique({ where: { id: applicationId } });
-    if (!app || !canViewApplication(user, app)) throw new AuthError("FORBIDDEN");
     const buf = Buffer.from(await file.arrayBuffer());
-    const { storageKey, sizeBytes } = await saveFile(applicationId, file.name, buf);
-    const doc = await prisma.applicationDocument.create({
-      data: {
-        applicationId,
-        documentType,
-        storageKey,
-        originalFilename: file.name,
-        mimeType: file.type,
-        sizeBytes,
-        uploadedById: user.id,
-      },
-    });
-    await addTimeline({
+    const doc = await uploadDocument(user, {
       applicationId,
-      actorId: user.id,
-      action: "DOCUMENT_UPLOADED",
-      remarks: `${documentType} — ${file.name}`,
-    });
-    await logAudit({
-      applicationId,
-      actorId: user.id,
-      action: "DOCUMENT_UPLOADED",
-      entityType: "ApplicationDocument",
-      entityId: doc.id,
-      metadata: { documentType, filename: file.name, sizeBytes },
+      documentType,
+      file: { name: file.name, type: file.type, buffer: buf },
     });
     return { id: doc.id };
   }, t);
   if (res.ok) revalidatePath(`/applications/${applicationId}`);
+  return res;
+}
+
+export async function deleteDocumentAction(documentId: string): Promise<ActionResult> {
+  const lang = await getLanguage();
+  const t = dictFor(lang);
+  const user = await requireUser();
+  const doc = await prisma.applicationDocument.findUnique({
+    where: { id: documentId },
+    select: { applicationId: true },
+  });
+  const res = await fail(() => deleteDocument(user, documentId), t);
+  if (res.ok && doc) revalidatePath(`/applications/${doc.applicationId}`);
   return res;
 }
 

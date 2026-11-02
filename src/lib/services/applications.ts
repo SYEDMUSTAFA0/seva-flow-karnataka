@@ -31,6 +31,7 @@ export interface DocChecklistRow {
     id: string;
     originalFilename: string;
     mimeType: string;
+    sizeBytes: number;
     uploadedAt: Date;
     verificationStatus: string;
     extractedData: string | null;
@@ -53,6 +54,7 @@ export function buildChecklist(
     documentType: string;
     originalFilename: string;
     mimeType: string;
+    sizeBytes: number;
     uploadedAt: Date;
     verificationStatus: string;
     extractedData: string | null;

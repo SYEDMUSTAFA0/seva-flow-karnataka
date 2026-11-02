@@ -78,6 +78,7 @@ export default async function DashboardPage() {
           id: "",
           documentType: d.documentType,
           originalFilename: "",
+          sizeBytes: 0,
           mimeType: "",
           uploadedAt: new Date(0),
           verificationStatus: d.verificationStatus,

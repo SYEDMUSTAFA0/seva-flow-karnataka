@@ -88,7 +88,6 @@ export default async function DocumentsPage({ params }: { params: Promise<{ id: 
 
       <DocumentsClient
         applicationId={app.id}
-        stage={stage}
         canVerify={canVerify}
         canUpload={canUpload}
         canAdvance={canAdvance}
@@ -96,22 +95,27 @@ export default async function DocumentsPage({ params }: { params: Promise<{ id: 
         checklist={checklist.map((row) => ({
           ...row,
           document: row.document
-            ? { ...row.document, uploadedAt: row.document.uploadedAt.toISOString() }
+            ? {
+                id: row.document.id,
+                originalFilename: row.document.originalFilename,
+                mimeType: row.document.mimeType,
+                sizeBytes: row.document.sizeBytes,
+                uploadedAt: row.document.uploadedAt.toISOString(),
+                verificationStatus: row.document.verificationStatus,
+                extractedData: row.document.extractedData,
+                storageKey: row.document.storageKey,
+              }
             : null,
         }))}
         extraDocs={extraDocs.map((d) => ({
           id: d.id,
-          documentType: d.documentType,
           originalFilename: d.originalFilename,
           mimeType: d.mimeType,
+          sizeBytes: d.sizeBytes,
           uploadedAt: d.uploadedAt.toISOString(),
           verificationStatus: d.verificationStatus,
           storageKey: d.storageKey,
           extractedData: d.extractedData,
-        }))}
-        docTypeOptions={Object.keys(t.docType).map((k) => ({
-          value: k,
-          label: t.docType[k as keyof typeof t.docType],
         }))}
       />
 
