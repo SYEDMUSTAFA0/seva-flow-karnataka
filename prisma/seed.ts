@@ -195,7 +195,7 @@ async function main() {
   }
 
   // Clean previous demo applications for reproducibility
-  await prisma.$executeRawUnsafe(`TRUNCATE TABLE "Notification","AIInteraction","AuditLog","ApplicationTimeline","ApplicationDecision","OfficerRecommendation","FieldVerification","DocumentVerification","ApplicationDocument","Application","Applicant" CASCADE`);
+  await prisma.$executeRawUnsafe(`TRUNCATE TABLE "Notification","AIInteraction","AuditLog","ApplicationTimeline","ApplicationDecision","OfficerRecommendation","FieldVerification","DocumentVerification","ApplicationDocument","Application","Applicant","StoredObject" CASCADE`);
 
   let seq = 100;
   let appIdx = 0;

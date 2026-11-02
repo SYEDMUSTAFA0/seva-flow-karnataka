@@ -9,6 +9,25 @@ An AI-assisted government workflow management platform for Karnataka Revenue Dep
 
 ---
 
+## Live demo
+
+| | |
+|---|---|
+| **App** | <https://seva-flow-karnataka.vercel.app> |
+| **Repository** | <https://github.com/SYEDMUSTAFA0/seva-flow-karnataka> |
+| **Password (all demo accounts)** | `seva@123` |
+
+| Demo account | Role | What to try |
+|---|---|---|
+| `inspector@sevaflow.kar` | Revenue Inspector | Full queue → open an application → run AI document review → verify documents → advance stages |
+| `field@sevaflow.kar` | Field Officer (Kanakapura) | Assigned field-verification files → mobile visit form → AI-drafted field report |
+| `tahsildar@sevaflow.kar` | Approving Officer | Files in *Final decision* → approve → printable certificate; reject/return on others |
+| `admin@sevaflow.kar` | Administrator | Audit log, settings, permission matrix |
+
+Hosted on Vercel with a managed PostgreSQL (Neon) database; AI runs in the clearly-labelled deterministic **demo provider** unless `AI_PROVIDER` + API key are configured.
+
+---
+
 ## Table of contents
 
 1. [The problem](#1-the-problem)
@@ -144,7 +163,7 @@ Next.js 16 (App Router, Turbopack) ─┬─ Server Components render every page
 - **Migrations:** `prisma/migrations/0001_init/migration.sql` generated from `schema.prisma`; applied by `db:setup` (embedded) or `prisma migrate deploy` (server).
 - **Auth:** bcrypt-hashed passwords, 7-day opaque session tokens (SHA-256 + server secret, HttpOnly+SameSite cookie), route protection via `src/proxy.ts` fast-path plus per-page/action checks.
 - **RBAC:** role → permission map in `src/lib/constants.ts`; every mutation re-checks permission, ownership, and stage legality inside transactions.
-- **Storage:** local filesystem under `STORAGE_DIR`, streamed through an authenticated route (`/api/files/[...key]`); swap-in S3 instructions in `src/lib/storage.ts`.
+- **Storage:** pluggable backend (`src/lib/storage-core.ts`) — local filesystem under `STORAGE_DIR` in embedded/dev mode, or file bytes inside Postgres (`StoredObject` table) when `DB_MODE=server` / `STORAGE_BACKEND=db`, which is what the Vercel deployment uses since serverless hosts have no persistent filesystem. Files stream through the authenticated route `/api/files/[...key]`; an S3-compatible adapter can drop in behind the same API.
 - **i18n:** centralized dictionaries (`src/i18n/en.ts` canonical + `kn.ts`), Kannada default via `sf_lang` cookie + `Noto Sans Kannada`, server-rendered `<html lang>`; no hardcoded strings in components.
 - **Auditability:** `AuditLog` (immutable; no update/delete paths exist) + `ApplicationTimeline` written inside each mutation's transaction.
 
@@ -207,13 +226,25 @@ npm run build        # production build — clean
 
 ## 12. Deployment
 
-**Vercel / any Node host + managed Postgres** (Neon, Supabase, RDS):
+**Production (this repo):** Vercel + Neon Postgres — <https://seva-flow-karnataka.vercel.app>
 
-1. Provision Postgres; set `DB_MODE=server`, `DATABASE_URL`, `SESSION_SECRET`, `STORAGE_DIR` (or swap the storage adapter for S3), and AI keys if using live AI.
-2. `npm run build && npx prisma migrate deploy && npx tsx prisma/seed.ts` (seed optional in prod).
-3. `npm run start` / deploy via the Vercel dashboard.
+| Env var | Value |
+|---|---|
+| `DB_MODE` | `server` |
+| `DATABASE_URL` | Neon pooled connection (set by the Vercel Postgres integration) |
+| `SESSION_SECRET` | random 32-byte hex |
+| `AI_PROVIDER` | `demo` (or `openai`/`gemini` + the matching key) |
 
-`docker-compose.yml` ships a production-style Postgres service for local parity (`docker compose up -d postgres`, then `DB_MODE=server`).
+Schema + demo data are applied from a dev machine:
+
+```bash
+DIRECT_URL=<unpooled-dsn> npx prisma migrate deploy
+DB_MODE=server DATABASE_URL=<pooled-dsn> npx tsx prisma/seed.ts
+```
+
+**Any Node host + managed Postgres** (Supabase, RDS, docker-compose …): set `DB_MODE=server`, `DATABASE_URL`, `SESSION_SECRET`; run `prisma migrate deploy`, then `npm run build && npm run start`. Uploaded files go to Postgres (`StoredObject`) automatically; set `STORAGE_BACKEND=fs` with a mounted `STORAGE_DIR` volume if you prefer filesystem storage.
+
+`docker-compose.yml` ships a local Postgres 16 service for parity testing (`docker compose up -d postgres`, then `DB_MODE=server`).
 
 ## 13. Repository map
 

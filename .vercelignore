@@ -1,0 +1,14 @@
+# Local environment files — never upload to Vercel (use project env vars)
+.env
+.env*
+!.env.example
+
+# Local data (embedded PGlite + uploaded files)
+.data
+
+# Build + test artifacts
+.next
+test-results
+playwright-report
+*.tsbuildinfo
+node_modules
