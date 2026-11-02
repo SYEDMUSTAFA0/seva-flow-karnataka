@@ -76,6 +76,7 @@ export const getCurrentUser = cache(async (): Promise<AuthUser | null> => {
     roleNameKn: u.role.nameKn,
     taluk: u.taluk,
     district: u.district,
+    permissions: u.role.permissions,
   };
 });
 

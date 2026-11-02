@@ -18,11 +18,14 @@ export interface AuthUser {
   roleNameKn: string;
   taluk: string | null;
   district: string | null;
+  /** Role's admin-configured permission set. Empty/undefined → code defaults. */
+  permissions?: string[];
 }
 
 export function hasPermission(user: AuthUser | null | undefined, permission: Permission): boolean {
   if (!user) return false;
-  return ROLE_PERMISSIONS[user.roleId]?.includes(permission) ?? false;
+  const list = user.permissions?.length ? user.permissions : ROLE_PERMISSIONS[user.roleId];
+  return list?.includes(permission) ?? false;
 }
 
 export function can(user: AuthUser | null | undefined, permission: Permission): boolean {

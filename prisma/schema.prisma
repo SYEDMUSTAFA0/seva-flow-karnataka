@@ -18,8 +18,24 @@ model Role {
   nameKn      String
   nameEn      String
   description String?
+  // Admin-editable permission set. Empty array = fall back to code defaults
+  // (ROLE_PERMISSIONS in src/lib/constants.ts).
+  permissions String[]
   users       User[]
   createdAt   DateTime @default(now())
+}
+
+// Organisational unit — e.g. a Tahsildar office covering a taluk.
+model Department {
+  id        String   @id @default(uuid())
+  code      String   @unique // e.g. "TALUK-KANAKAPURA"
+  nameEn    String
+  nameKn    String?
+  district  String
+  taluk     String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  users     User[]
 }
 
 model User {
@@ -31,6 +47,8 @@ model User {
   nameKn       String?
   roleId       String
   role         Role      @relation(fields: [roleId], references: [id])
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id])
   taluk        String?
   district     String?
   active       Boolean   @default(true)

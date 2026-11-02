@@ -19,7 +19,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <AppShell
       user={user}
-      permissions={ROLE_PERMISSIONS[user.roleId] ?? []}
+      permissions={user.permissions?.length ? user.permissions : (ROLE_PERMISSIONS[user.roleId] ?? [])}
       notifications={notifications.map((n) => ({
         id: n.id,
         title: lang === "kn" ? n.titleKn : n.titleEn,

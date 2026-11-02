@@ -22,7 +22,7 @@ An AI-assisted government workflow management platform for Karnataka Revenue Dep
 | `inspector@sevaflow.kar` | Revenue Inspector | Full queue → open an application → run AI document review → verify documents → advance stages |
 | `field@sevaflow.kar` | Field Officer (Kanakapura) | Assigned field-verification files → mobile visit form → AI-drafted field report |
 | `tahsildar@sevaflow.kar` | Approving Officer | Files in *Final decision* → approve → printable certificate; reject/return on others |
-| `admin@sevaflow.kar` | Administrator | Audit log, settings, permission matrix |
+| `admin@sevaflow.kar` | Administrator | `/admin` console — members, departments, checklist, role permissions |
 
 Hosted on Vercel with a managed PostgreSQL (Neon) database; AI runs in the clearly-labelled deterministic **demo provider** unless `AI_PROVIDER` + API key are configured.
 
@@ -66,7 +66,7 @@ Revenue-department staff process citizen applications through paper files, manua
 | **Field Officer** (ಗ್ರಾಮ ಲೆಕ್ಕಿಗ / ಕ್ಷೇತ್ರ ಅಧಿಕಾರಿ) | Village Accountant / Village Administrative Officer / field staff | Sees only applications assigned to them, conducts the on-site visit on a phone-friendly form, captures GPS, notes and photos, submits a verification report |
 | **Revenue Inspector** (ಕಂದಾಯ ನಿರೀಕ್ಷಕ) | Scrutinises applications and supervises field work | Creates/records applications, verifies documents, returns incomplete files, submits an officer recommendation |
 | **Approving Officer** (ಅನುಮೋದಕ ಅಧಿಕಾರಿ) | Deputy Tahsildar / Tahsildar — the signing authority | Reviews the complete file, takes the final decision (approve / reject / return), issues the certificate |
-| **Administrator** (ನಿರ್ವಾಹಕ) | Office IT/admin staff | Views the audit log, users, and permission matrix |
+| **Administrator** (ನಿರ್ವಾಹಕ) | Office IT/admin staff | `/admin` console: full CRUD for member accounts, departments, the document checklist and the role permission matrix; application record editing; audit log |
 
 Permissions are enforced **on the server** (never just hidden in the UI) — e.g. a field officer cannot open the decision screen or the audit log even by guessing the URL.
 
@@ -253,7 +253,7 @@ prisma/            schema, migration, deterministic seed (fictional data)
 scripts/           db-setup / db-reset / minpdf (generated seed documents)
 src/app/(auth)/    login (Kannada-first)
 src/app/(app)/     dashboard, applications/*, verification, recommendation,
-                   decision, certificate, audit, settings
+                   decision, certificate, audit, admin console, settings
 src/app/api/files/ authenticated document streaming
 src/components/    app shell, stepper, timeline, AI panel, stage badges, ui kit
 src/i18n/          en + kn dictionaries, server + client providers

@@ -17,6 +17,7 @@ import {
   DOCUMENT_TYPES,
   FIELD_OUTCOMES,
   RECOMMENDATIONS,
+  ROLE_PERMISSIONS,
   ROLES,
   STAGES,
 } from "../src/lib/constants";
@@ -151,16 +152,29 @@ async function main() {
     { id: ROLES.ADMIN, nameEn: "Administrator", nameKn: "ನಿರ್ವಾಹಕ", description: "Manages users, workflow configuration and audit" },
   ];
   for (const r of roleDefs) {
-    await prisma.role.upsert({ where: { id: r.id }, update: r, create: r });
+    const data = { ...r, permissions: [...ROLE_PERMISSIONS[r.id as keyof typeof ROLE_PERMISSIONS]] };
+    await prisma.role.upsert({ where: { id: r.id }, update: data, create: data });
+  }
+
+  // Departments (organisational units — Tahsildar offices covering a taluk)
+  const deptDefs = [
+    { code: "TALUK-KANAKAPURA", nameEn: "Tahsildar Office, Kanakapura", nameKn: "ತಹಶೀಲ್ದಾರ್ ಕಚೇರಿ, ಕನಕಪುರ", taluk: "Kanakapura", district: "Ramanagara" },
+    { code: "TALUK-SRIRANGAPATNA", nameEn: "Tahsildar Office, Srirangapatna", nameKn: "ತಹಶೀಲ್ದಾರ್ ಕಚೇರಿ, ಶ್ರೀರಂಗಪಟ್ಟಣ", taluk: "Srirangapatna", district: "Mandya" },
+    { code: "DIST-RAMANAGARA", nameEn: "District Revenue Office, Ramanagara", nameKn: "ಜಿಲ್ಲಾ ಕಂದಾಯ ಕಚೇರಿ, ರಾಮನಗರ", taluk: "Ramanagara", district: "Ramanagara" },
+  ];
+  const departments: Record<string, { id: string }> = {};
+  for (const d of deptDefs) {
+    const dept = await prisma.department.upsert({ where: { code: d.code }, update: d, create: d });
+    departments[d.code] = dept;
   }
 
   // Users
   const userDefs = [
-    { email: "field@sevaflow.kar", name: "Kiran S", nameKn: "ಕಿರಣ್ ಎಸ್", roleId: ROLES.FIELD_OFFICER, taluk: "Kanakapura", district: "Ramanagara" },
-    { email: "field2@sevaflow.kar", name: "Manjunath B", nameKn: "ಮಂಜುನಾಥ್ ಬಿ", roleId: ROLES.FIELD_OFFICER, taluk: "Srirangapatna", district: "Mandya" },
-    { email: "inspector@sevaflow.kar", name: "Suma R", nameKn: "ಸುಮಾ ಆರ್", roleId: ROLES.REVENUE_INSPECTOR, taluk: "Kanakapura", district: "Ramanagara" },
-    { email: "tahsildar@sevaflow.kar", name: "Rekha Patil", nameKn: "ರೇಖಾ ಪಾಟೀಲ್", roleId: ROLES.APPROVING_OFFICER, taluk: "Kanakapura", district: "Ramanagara" },
-    { email: "admin@sevaflow.kar", name: "Suresh K", nameKn: "ಸುರೇಶ್ ಕೆ", roleId: ROLES.ADMIN, taluk: null, district: null },
+    { email: "field@sevaflow.kar", name: "Kiran S", nameKn: "ಕಿರಣ್ ಎಸ್", roleId: ROLES.FIELD_OFFICER, taluk: "Kanakapura", district: "Ramanagara", departmentId: departments["TALUK-KANAKAPURA"].id },
+    { email: "field2@sevaflow.kar", name: "Manjunath B", nameKn: "ಮಂಜುನಾಥ್ ಬಿ", roleId: ROLES.FIELD_OFFICER, taluk: "Srirangapatna", district: "Mandya", departmentId: departments["TALUK-SRIRANGAPATNA"].id },
+    { email: "inspector@sevaflow.kar", name: "Suma R", nameKn: "ಸುಮಾ ಆರ್", roleId: ROLES.REVENUE_INSPECTOR, taluk: "Kanakapura", district: "Ramanagara", departmentId: departments["TALUK-KANAKAPURA"].id },
+    { email: "tahsildar@sevaflow.kar", name: "Rekha Patil", nameKn: "ರೇಖಾ ಪಾಟೀಲ್", roleId: ROLES.APPROVING_OFFICER, taluk: "Kanakapura", district: "Ramanagara", departmentId: departments["DIST-RAMANAGARA"].id },
+    { email: "admin@sevaflow.kar", name: "Suresh K", nameKn: "ಸುರೇಶ್ ಕೆ", roleId: ROLES.ADMIN, taluk: null, district: null, departmentId: departments["DIST-RAMANAGARA"].id },
   ];
   const users: Record<string, { id: string }> = {};
   for (const u of userDefs) {

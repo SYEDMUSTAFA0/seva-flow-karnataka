@@ -15,6 +15,7 @@ import {
   ScrollText,
   Search,
   Settings,
+  UserCog,
   X,
 } from "lucide-react";
 import { useEffect, useRef, useState, useTransition } from "react";
@@ -40,6 +41,7 @@ const NAV = [
   { href: "/applications/new", icon: FilePlus2, key: "newApplication" as const, perm: "app:create" },
   { href: "/applications?view=field", icon: MapPin, key: "fieldWork" as const, perm: "field:verify" },
   { href: "/audit", icon: ScrollText, key: "audit" as const, perm: "audit:view-all" },
+  { href: "/admin", icon: UserCog, key: "admin" as const, perm: "users:manage" },
   { href: "/settings", icon: Settings, key: "settings" as const },
 ];
 

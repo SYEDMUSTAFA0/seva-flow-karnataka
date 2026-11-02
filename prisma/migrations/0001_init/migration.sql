@@ -7,9 +7,24 @@ CREATE TABLE "Role" (
     "nameKn" TEXT NOT NULL,
     "nameEn" TEXT NOT NULL,
     "description" TEXT,
+    "permissions" TEXT[],
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "Role_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Department" (
+    "id" TEXT NOT NULL,
+    "code" TEXT NOT NULL,
+    "nameEn" TEXT NOT NULL,
+    "nameKn" TEXT,
+    "district" TEXT NOT NULL,
+    "taluk" TEXT NOT NULL,
+    "active" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Department_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -21,6 +36,7 @@ CREATE TABLE "User" (
     "name" TEXT NOT NULL,
     "nameKn" TEXT,
     "roleId" TEXT NOT NULL,
+    "departmentId" TEXT,
     "taluk" TEXT,
     "district" TEXT,
     "active" BOOLEAN NOT NULL DEFAULT true,
@@ -267,6 +283,9 @@ CREATE TABLE "Notification" (
 );
 
 -- CreateIndex
+CREATE UNIQUE INDEX "Department_code_key" ON "Department"("code");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 
 -- CreateIndex
@@ -316,6 +335,9 @@ CREATE INDEX "Notification_userId_read_idx" ON "Notification"("userId", "read");
 
 -- AddForeignKey
 ALTER TABLE "User" ADD CONSTRAINT "User_roleId_fkey" FOREIGN KEY ("roleId") REFERENCES "Role"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "User" ADD CONSTRAINT "User_departmentId_fkey" FOREIGN KEY ("departmentId") REFERENCES "Department"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Session" ADD CONSTRAINT "Session_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
